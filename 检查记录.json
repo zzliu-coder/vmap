@@ -1,0 +1,175 @@
+{
+  "tests": [
+    {
+      "check": "default city Da Nang",
+      "pass": true
+    },
+    {
+      "check": "47 real restaurant markers before GPS",
+      "pass": true
+    },
+    {
+      "check": "203 catalog records",
+      "pass": true
+    },
+    {
+      "check": "189 public-coordinate points",
+      "pass": true
+    },
+    {
+      "check": "no fake coordinate keys",
+      "pass": true
+    },
+    {
+      "check": "default viewport covers all Da Nang points",
+      "pass": true
+    },
+    {
+      "check": "address present on each DN card",
+      "pass": true
+    },
+    {
+      "check": "Da Nang no unresolved addresses",
+      "pass": true
+    },
+    {
+      "check": "no horizontal overflow",
+      "pass": true
+    },
+    {
+      "check": "real WebMercator inverse",
+      "pass": true
+    },
+    {
+      "check": "latitude/longitude map orientation",
+      "pass": true
+    },
+    {
+      "check": "actual navigation addresses",
+      "pass": true
+    },
+    {
+      "check": "marker opens restaurant detail",
+      "pass": true
+    },
+    {
+      "check": "detail has address+navigation",
+      "pass": true
+    },
+    {
+      "check": "GPS displays blue user point",
+      "pass": true
+    },
+    {
+      "check": "GPS accuracy circle",
+      "pass": true
+    },
+    {
+      "check": "status updated from requesting to success",
+      "pass": true
+    },
+    {
+      "check": "distance sorted ascending",
+      "pass": true
+    },
+    {
+      "check": "distances explicitly straight line",
+      "pass": true
+    },
+    {
+      "check": "known 1-degree distance",
+      "pass": true
+    },
+    {
+      "check": "Bib filter47->23",
+      "pass": true
+    },
+    {
+      "check": "budget based on upper estimate",
+      "pass": true
+    },
+    {
+      "check": "accent insensitive search",
+      "pass": true
+    },
+    {
+      "check": "updated ThiaGo actual address",
+      "pass": true
+    },
+    {
+      "check": "2025 Da Nang43points",
+      "pass": true
+    },
+    {
+      "check": "Hanoi64points65rows",
+      "pass": true
+    },
+    {
+      "check": "HCMC78points81rows",
+      "pass": true
+    },
+    {
+      "check": "conflicting DuYen point withheld",
+      "pass": true
+    },
+    {
+      "check": "following location update started",
+      "pass": true
+    },
+    {
+      "check": "stop clears watch",
+      "pass": true
+    },
+    {
+      "check": "zoom in changes tile zoom",
+      "pass": true
+    },
+    {
+      "check": "pointer dragging pans map",
+      "pass": true
+    },
+    {
+      "check": "expand list works",
+      "pass": true
+    },
+    {
+      "check": "tablet city labels remain on one line",
+      "pass": true
+    },
+    {
+      "check": "tablet sidebar visible",
+      "pass": true
+    },
+    {
+      "check": "tablet map and list do not overlap",
+      "pass": true
+    },
+    {
+      "check": "no browser JavaScript errors",
+      "pass": true
+    },
+    {
+      "check": "tiles use OSM and no CARTO",
+      "pass": true
+    },
+    {
+      "check": "insecure local preview gives actionable message",
+      "pass": true
+    },
+    {
+      "check": "permission denial is handled without blanking restaurants",
+      "pass": true
+    },
+    {
+      "check": "timeout leaves useful restaurant list visible",
+      "pass": true
+    }
+  ],
+  "passed": 41,
+  "total": 41,
+  "limitations": [
+    "Browser GPS mocked near Da Nang. This is not the user's observed location.",
+    "OSM tile requests deliberately blocked in this offline test. Actual mobile-network tile loading not tested.",
+    "No deployment performed by this test."
+  ]
+}
