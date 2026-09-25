@@ -326,9 +326,9 @@ try {
   );
   await p.selectOption("#city", "hoi-an");
   check(
-    "Hoi An 11 local picks are mapped",
-    (await p.locator(".pin").count()) === 11 &&
-      (await p.locator(".place").count()) === 11,
+    "Hoi An 18 local points are mapped",
+    (await p.locator(".pin").count()) === 18 &&
+      (await p.locator(".place").count()) === 18,
   );
   await p.selectOption("#city", "hcm");
   await p.evaluate(() => window.__travelMap.showDetail("VN109"));

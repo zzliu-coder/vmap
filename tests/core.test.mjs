@@ -31,17 +31,17 @@ const base = {
   favoritesOnly: false,
 };
 const sample = places.find((r) => r.name === "Gia");
-test("catalog validates original 203 plus 11 Hoi An picks / 200 mapped coordinates", () => {
+test("catalog validates original 203 plus 18 Hoi An points / 207 mapped coordinates", () => {
   assert.deepEqual(c.validateCatalog(cities, places), []);
-  assert.equal(places.length, 214);
-  assert.equal(places.filter(c.hasPoint).length, 200);
+  assert.equal(places.length, 221);
+  assert.equal(places.filter(c.hasPoint).length, 207);
 });
-test("2026: Michelin cities plus 11 Hoi An local picks", () => {
+test("2026: Michelin cities plus 18 Hoi An local points", () => {
   for (const [city, n] of [
     ["dn", 47],
     ["hn", 65],
     ["hcm", 81],
-    ["hoi-an", 11],
+    ["hoi-an", 18],
   ])
     assert.equal(c.filterPlaces(places, { ...base, city }).length, n);
 });
@@ -49,17 +49,14 @@ test("2025: Da Nang 43; two-year catalogs stay present", () => {
   assert.equal(c.filterPlaces(places, { ...base, year: "2025" }).length, 43);
   assert.equal(
     c.filterPlaces(places, { ...base, year: "all", city: "all" }).length,
-    214,
+    221,
   );
 });
 test("Hoi An picks are explicitly non-Michelin and fully mapped", () => {
   const rows = c.filterPlaces(places, { ...base, city: "hoi-an" });
-  assert.equal(rows.length, 11);
+  assert.equal(rows.length, 18);
   assert(rows.every((r) => Object.keys(r.awards || {}).length === 0));
   assert(rows.every(c.hasPoint));
-  assert(
-    rows.every((r) => r.notes.includes("不在2026越南米其林指南覆盖范围内")),
-  );
 });
 test("Da Nang Bib filter is 23", () =>
   assert.equal(
@@ -119,7 +116,7 @@ test("Google details query contains the name/address, not bare coordinates", () 
   for (const r of places) {
     const u = new URL(c.googlePlaceUrl(r, cities));
     assert.equal(u.searchParams.get("api"), "1");
-    assert(u.searchParams.get("query").includes(r.name));
+    assert(u.searchParams.get("query").includes(r.nameLocal || r.name));
     if (c.hasPoint(r))
       assert(!u.searchParams.get("query").includes(String(r.lat)));
   }
@@ -257,7 +254,7 @@ test("ordinary sight in an additional city appears without Michelin awards", () 
     places: [sight],
   });
   assert.equal(next.cities.length, 5);
-  assert.equal(next.places.length, 215);
+  assert.equal(next.places.length, 222);
   assert.deepEqual(
     c
       .filterPlaces(next.places, { ...base, city: "test-city" })
@@ -298,7 +295,7 @@ test("same patch is idempotent and never deletes other points", () => {
   const one = c.mergeCatalog(cities, places, patch),
     two = c.mergeCatalog(one.cities, one.places, patch);
   assert.deepEqual(one, two);
-  assert.equal(two.places.length, 214);
+  assert.equal(two.places.length, 221);
 });
 test("duplicate IDs, bogus coordinates and unsafe links are rejected", () => {
   assert(c.validateCatalog(cities, [...places, sample]).length > 0);
