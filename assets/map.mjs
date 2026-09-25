@@ -13,9 +13,22 @@ export class TravelMap {
     this.drag = null;
     this.pinch = null;
     this.raf = 0;
-    this.tileFailures = 0;
-    this.tileSuccess = 0;
+    this.tileProviders = [
+      {
+        name: "OpenStreetMap",
+        template: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      },
+      {
+        name: "OpenStreetMap DE",
+        template: "https://tile.openstreetmap.de/{z}/{x}/{y}.png",
+      },
+    ];
+    this.tileProviderIndex = 0;
+    this.tileCacheLimit = 120;
+    this.currentNeed = new Set();
+    this.tileStatusTimer = 0;
     this.setup();
+    this.updateProviderLabel();
     new ResizeObserver(() => this.queue()).observe(el);
   }
   project(p, z = this.zoom) {
@@ -140,6 +153,107 @@ export class TravelMap {
       { w, h } = this.size();
     return { x: n.x - c.x + w / 2, y: n.y - c.y + h / 2 };
   }
+  provider(step = 0) {
+    return this.tileProviders[
+      (this.tileProviderIndex + step) % this.tileProviders.length
+    ];
+  }
+  tileUrl(z, x, y, step = 0) {
+    return this.provider(step)
+      .template.replace("{z}", z)
+      .replace("{x}", x)
+      .replace("{y}", y);
+  }
+  loadTile(im, z, x, y, step = 0, retry = 0) {
+    im.dataset.providerStep = String(step);
+    im.dataset.retry = String(retry);
+    im.dataset.state = "loading";
+    im.src = this.tileUrl(z, x, y, step);
+  }
+  scheduleTileStatus() {
+    clearTimeout(this.tileStatusTimer);
+    this.updateTileStatus();
+    const incomplete = [...this.currentNeed].some((key) => {
+      const im = this.tiles.get(key);
+      return !im || im.dataset.state !== "loaded";
+    });
+    if (incomplete)
+      this.tileStatusTimer = setTimeout(
+        () => this.updateTileStatus(true),
+        1200,
+      );
+  }
+  updateTileStatus(forceVisible = false) {
+    const box = $("tile-error"),
+      label = $("tile-status");
+    if (!box || !label) return;
+    let loaded = 0,
+      loading = 0,
+      failed = 0;
+    for (const key of this.currentNeed) {
+      const state = this.tiles.get(key)?.dataset.state;
+      if (state === "loaded") loaded++;
+      else if (state === "failed") failed++;
+      else loading++;
+    }
+    const needed = this.currentNeed.size;
+    const fallbackLoaded = [...this.currentNeed].some((key) => {
+      const im = this.tiles.get(key);
+      return (
+        im?.dataset.state === "loaded" &&
+        Number(im.dataset.providerStep || 0) > 0
+      );
+    });
+    const providerLabel = $("map-provider");
+    if (providerLabel)
+      providerLabel.textContent = fallbackLoaded
+        ? `${this.provider().name} + 备用`
+        : this.provider().name;
+    if (!needed || loaded === needed) {
+      box.hidden = true;
+      return;
+    }
+    label.textContent = failed
+      ? `底图 ${loaded}/${needed} · ${failed} 块失败，已自动重试/切换备用源`
+      : `底图 ${loaded}/${needed} · 正在加载 ${loading} 块…`;
+    box.hidden = !(forceVisible || failed > 0);
+  }
+  pruneTileCache() {
+    if (this.tiles.size <= this.tileCacheLimit) return;
+    const stale = [...this.tiles.entries()]
+      .filter(([key]) => !this.currentNeed.has(key))
+      .sort(
+        (a, b) =>
+          Number(a[1].dataset.lastUsed || 0) -
+          Number(b[1].dataset.lastUsed || 0),
+      );
+    while (this.tiles.size > this.tileCacheLimit && stale.length) {
+      const [key, im] = stale.shift();
+      im.remove();
+      this.tiles.delete(key);
+    }
+  }
+  retryTiles() {
+    for (const key of this.currentNeed) {
+      const im = this.tiles.get(key);
+      if (!im || im.dataset.state === "loaded") continue;
+      const [z, x, y] = key.split("/").map(Number);
+      this.loadTile(im, z, ((x % 2 ** z) + 2 ** z) % 2 ** z, y, 0, 0);
+    }
+    this.scheduleTileStatus();
+  }
+  switchTiles() {
+    this.tileProviderIndex =
+      (this.tileProviderIndex + 1) % this.tileProviders.length;
+    for (const im of this.tiles.values()) im.remove();
+    this.tiles.clear();
+    this.updateProviderLabel();
+    this.queue();
+  }
+  updateProviderLabel() {
+    const el = $("map-provider");
+    if (el) el.textContent = this.provider().name;
+  }
   draw() {
     const { w, h } = this.size();
     if (!w || !h) return;
@@ -148,6 +262,7 @@ export class TravelMap {
       top = center.y - h / 2,
       n = 2 ** this.zoom;
     const need = new Set();
+    this.currentNeed = need;
     for (let x = Math.floor(left / 256); x <= Math.floor((left + w) / 256); x++)
       for (
         let y = Math.floor(top / 256);
@@ -156,7 +271,8 @@ export class TravelMap {
       ) {
         if (y < 0 || y >= n) continue;
         const wrap = ((x % n) + n) % n,
-          key = `${this.zoom}/${x}/${y}`;
+          z = this.zoom,
+          key = `${z}/${x}/${y}`;
         need.add(key);
         let im = this.tiles.get(key);
         if (!im) {
@@ -164,25 +280,61 @@ export class TravelMap {
           im.alt = "";
           im.draggable = false;
           im.decoding = "async";
+          im.dataset.state = "loading";
           im.onload = () => {
-            this.tileSuccess++;
-            $("tile-error").hidden = true;
+            im.dataset.state = "loaded";
+            im.style.opacity = "1";
+            this.updateTileStatus();
           };
           im.onerror = () => {
-            this.tileFailures++;
-            if (this.tileSuccess === 0) $("tile-error").hidden = false;
+            const retry = Number(im.dataset.retry || 0),
+              step = Number(im.dataset.providerStep || 0);
+            if (!this.currentNeed.has(key)) {
+              im.dataset.state = "failed";
+              return;
+            }
+            if (retry < 2) {
+              im.dataset.state = "loading";
+              setTimeout(
+                () =>
+                  this.tiles.get(key) === im &&
+                  this.currentNeed.has(key) &&
+                  this.loadTile(im, z, wrap, y, step, retry + 1),
+                retry === 0 ? 500 : 1500,
+              );
+              this.updateTileStatus();
+              return;
+            }
+            if (step + 1 < this.tileProviders.length) {
+              im.dataset.state = "loading";
+              setTimeout(
+                () =>
+                  this.tiles.get(key) === im &&
+                  this.currentNeed.has(key) &&
+                  this.loadTile(im, z, wrap, y, step + 1, 0),
+                250,
+              );
+              this.updateTileStatus(true);
+              return;
+            }
+            im.dataset.state = "failed";
+            im.style.opacity = "0";
+            this.updateTileStatus(true);
           };
-          im.src = `https://tile.openstreetmap.org/${this.zoom}/${wrap}/${y}.png`;
           $("tiles").append(im);
           this.tiles.set(key, im);
+          this.loadTile(im, z, wrap, y, 0, 0);
         }
+        if (im.dataset.state === "failed") this.loadTile(im, z, wrap, y, 0, 0);
+        im.dataset.lastUsed = String(Date.now());
+        im.style.display = "";
         im.style.transform = `translate(${Math.round(x * 256 - left)}px,${Math.round(y * 256 - top)}px)`;
       }
+    this.currentNeed = need;
     for (const [key, im] of this.tiles)
-      if (!need.has(key)) {
-        im.remove();
-        this.tiles.delete(key);
-      }
+      if (!need.has(key)) im.style.display = "none";
+    this.pruneTileCache();
+    this.scheduleTileStatus();
     for (const r of this.rows) {
       const p = this.screen(r),
         node = this.nodes.get(r.id);

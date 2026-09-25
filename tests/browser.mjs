@@ -101,14 +101,16 @@ async function newPage(width = 412, height = 915, { liveTiles = false } = {}) {
       },
     });
   });
-  if (!liveTiles)
-    await context.route("https://tile.openstreetmap.org/**", (r) =>
+  if (!liveTiles) {
+    const tile = (r) =>
       r.fulfill({
         status: 200,
         contentType: "image/svg+xml",
         body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e3eeea"/></svg>',
-      }),
-    );
+      });
+    await context.route("https://tile.openstreetmap.org/**", tile);
+    await context.route("https://tile.openstreetmap.de/**", tile);
+  }
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base, { waitUntil: "networkidle" });
@@ -560,6 +562,73 @@ try {
       (await journal.locator("#journal-open").textContent()) === "日记",
   );
   await jc.close();
+  const fallbackContext = await browser.newContext({
+    viewport: { width: 412, height: 915 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  let primaryRequests = 0,
+    fallbackRequests = 0;
+  await fallbackContext.route("https://tile.openstreetmap.org/**", (route) => {
+    primaryRequests++;
+    route.fulfill({ status: 503, body: "temporary failure" });
+  });
+  await fallbackContext.route("https://tile.openstreetmap.de/**", (route) => {
+    fallbackRequests++;
+    route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#dfe9e4"/></svg>',
+    });
+  });
+  const fallbackPage = await fallbackContext.newPage();
+  fallbackPage.on("pageerror", (e) => errors.push(e.message));
+  await fallbackPage.goto(base, { waitUntil: "domcontentloaded" });
+  await fallbackPage.waitForFunction(() => !!window.__travelMap);
+  await fallbackPage.waitForFunction(
+    () => {
+      const m = window.__travelMap.map;
+      const current = [...m.currentNeed]
+        .map((key) => m.tiles.get(key))
+        .filter(Boolean);
+      return (
+        current.length > 0 &&
+        current.every((im) => im.dataset.state === "loaded") &&
+        current.some((im) => Number(im.dataset.providerStep || 0) > 0)
+      );
+    },
+    { timeout: 10000 },
+  );
+  check(
+    "tile failures retry and automatically fall back to the secondary source",
+    primaryRequests > 0 && fallbackRequests > 0,
+    { primaryRequests, fallbackRequests },
+  );
+  check(
+    "successful fallback hides the incomplete-map warning",
+    await fallbackPage.locator("#tile-error").isHidden(),
+  );
+  check(
+    "fallback source is visible in map attribution",
+    await fallbackPage
+      .locator("#map-provider")
+      .textContent()
+      .then((t) => t.includes("备用")),
+  );
+  const beforeCache = await fallbackPage.evaluate(
+    () => window.__travelMap.map.tiles.size,
+  );
+  await fallbackPage.evaluate(() => {
+    const m = window.__travelMap.map;
+    m.pan({ lat: m.center.lat + 0.004, lon: m.center.lon + 0.004 });
+  });
+  await fallbackPage.waitForTimeout(100);
+  check(
+    "recent offscreen tiles stay in the in-memory cache",
+    (await fallbackPage.evaluate(() => window.__travelMap.map.tiles.size)) >=
+      beforeCache,
+  );
+  await fallbackContext.close();
   check("no browser JavaScript errors", errors.length === 0, errors);
   const { page: extra, context: ec } = await newPage();
   const fixtures = JSON.parse(
@@ -639,6 +708,22 @@ try {
           (i) => i.naturalWidth > 0,
         ),
       ),
+    );
+    await live.evaluate(() => window.__travelMap.map.switchTiles());
+    await live.waitForFunction(
+      () =>
+        document.querySelector("#map-provider")?.textContent.includes("DE") &&
+        [...document.querySelectorAll("#tiles img")].some(
+          (i) => i.complete && i.naturalWidth > 0,
+        ),
+      { timeout: 20000 },
+    );
+    check(
+      "live secondary tile source can be selected and loaded",
+      await live
+        .locator("#map-provider")
+        .textContent()
+        .then((t) => t.includes("DE")),
     );
     await live.screenshot({ path: path.join(out, "mobile-live-map.png") });
     await live.evaluate(() =>

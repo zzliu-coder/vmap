@@ -444,6 +444,17 @@ input {
 .tile-error.show {
   display: block;
 }
+.tile-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.tile-actions button {
+  min-height: 30px;
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 10px;
+}
 #sheet {
   height: 52px;
   flex-shrink: 0;

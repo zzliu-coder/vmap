@@ -678,6 +678,14 @@ function bindEvents() {
     setSheet(state.sheet === "expanded" ? "open" : "expanded");
   $("zoom-in").onclick = () => map.zoomBy(1);
   $("zoom-out").onclick = () => map.zoomBy(-1);
+  $("retry-tiles").onclick = () => {
+    map.retryTiles();
+    toast("正在重试当前屏幕的底图。");
+  };
+  $("switch-tiles").onclick = () => {
+    map.switchTiles();
+    toast("已切换底图来源，正在重新加载。");
+  };
   $("fit-city").onclick = () => {
     pauseFollowForPan();
     state.selected = null;

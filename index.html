@@ -8,15 +8,15 @@
     />
     <meta name="theme-color" content="#153337" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>越南随行地图 · v4.2.0</title>
-    <link rel="stylesheet" href="assets/style.css?v=4.2.0" />
-    <script type="module" src="assets/app.mjs?v=4.2.0"></script>
+    <title>越南随行地图 · v4.3.0</title>
+    <link rel="stylesheet" href="assets/style.css?v=4.3.0" />
+    <script type="module" src="assets/app.mjs?v=4.3.0"></script>
   </head>
   <body>
     <div id="app">
       <header id="header">
         <div class="titlebar">
-          <h1>越南随行地图 <span class="version">v4.2.0</span></h1>
+          <h1>越南随行地图 <span class="version">v4.3.0</span></h1>
           <div class="header-actions">
             <button id="journal-open">日记</button>
             <button
@@ -133,7 +133,11 @@
             </div>
           </div>
           <div id="tile-error" class="tile-error" role="status" hidden>
-            底图暂未加载成功，请检查网络。地点列表与 Google Maps 入口仍可使用。
+            <span id="tile-status">底图正在加载…</span>
+            <div class="tile-actions">
+              <button id="retry-tiles">重试底图</button>
+              <button id="switch-tiles">换底图</button>
+            </div>
           </div>
           <div id="scale" class="scale"></div>
           <div class="credit">
@@ -142,9 +146,9 @@
               href="https://www.openstreetmap.org/copyright"
               target="_blank"
               rel="noopener"
-              >OpenStreetMap</a
+              >OpenStreetMap contributors</a
             >
-            contributors
+            · <span id="map-provider">OpenStreetMap</span>
           </div>
         </section>
         <section id="sheet" data-mode="collapsed" aria-label="地点列表与详情">
