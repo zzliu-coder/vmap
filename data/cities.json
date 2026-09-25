@@ -1,0 +1,29 @@
+[
+  {
+    "id": "dn",
+    "name": "岘港",
+    "localName": "Đà Nẵng",
+    "searchName": "Da Nang",
+    "country": "Vietnam",
+    "lat": 16.065,
+    "lon": 108.231
+  },
+  {
+    "id": "hn",
+    "name": "河内",
+    "localName": "Hà Nội",
+    "searchName": "Hanoi",
+    "country": "Vietnam",
+    "lat": 21.029,
+    "lon": 105.846
+  },
+  {
+    "id": "hcm",
+    "name": "胡志明市",
+    "localName": "Hồ Chí Minh",
+    "searchName": "Ho Chi Minh City",
+    "country": "Vietnam",
+    "lat": 10.785,
+    "lon": 106.709
+  }
+]

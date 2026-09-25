@@ -1,0 +1,17 @@
+{
+  "name": "vmap-travel",
+  "private": true,
+  "version": "4.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "validate": "node scripts/validate-data.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "build": "node scripts/build.mjs",
+    "serve": "python3 -m http.server 47839 --bind 127.0.0.1"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "prettier": "3.8.1"
+  }
+}
