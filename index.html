@@ -8,15 +8,15 @@
     />
     <meta name="theme-color" content="#153337" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>越南随行地图 · v4.3.0</title>
-    <link rel="stylesheet" href="assets/style.css?v=4.3.0" />
-    <script type="module" src="assets/app.mjs?v=4.3.0"></script>
+    <title>越南随行地图 · v4.3.1</title>
+    <link rel="stylesheet" href="assets/style.css?v=4.3.1" />
+    <script type="module" src="assets/app.mjs?v=4.3.1"></script>
   </head>
   <body>
     <div id="app">
       <header id="header">
         <div class="titlebar">
-          <h1>越南随行地图 <span class="version">v4.3.0</span></h1>
+          <h1>越南随行地图 <span class="version">v4.3.1</span></h1>
           <div class="header-actions">
             <button id="journal-open">日记</button>
             <button
@@ -111,6 +111,7 @@
             <button id="zoom-in" aria-label="放大地图">+</button
             ><button id="zoom-out" aria-label="缩小地图">−</button
             ><button id="fit-city" class="small">全部<br />点位</button
+            ><button id="switch-tiles" class="small">换<br />底图</button
             ><button id="restore-panels" class="small" hidden>
               恢复<br />面板
             </button>
@@ -130,13 +131,6 @@
                 <button id="copy-coordinates">复制经纬度</button>
                 <button id="checkin-current">当前位置打卡</button>
               </div>
-            </div>
-          </div>
-          <div id="tile-error" class="tile-error" role="status" hidden>
-            <span id="tile-status">底图正在加载…</span>
-            <div class="tile-actions">
-              <button id="retry-tiles">重试底图</button>
-              <button id="switch-tiles">换底图</button>
             </div>
           </div>
           <div id="scale" class="scale"></div>

@@ -183,20 +183,7 @@ export class TravelMap {
         1200,
       );
   }
-  updateTileStatus(forceVisible = false) {
-    const box = $("tile-error"),
-      label = $("tile-status");
-    if (!box || !label) return;
-    let loaded = 0,
-      loading = 0,
-      failed = 0;
-    for (const key of this.currentNeed) {
-      const state = this.tiles.get(key)?.dataset.state;
-      if (state === "loaded") loaded++;
-      else if (state === "failed") failed++;
-      else loading++;
-    }
-    const needed = this.currentNeed.size;
+  updateTileStatus() {
     const fallbackLoaded = [...this.currentNeed].some((key) => {
       const im = this.tiles.get(key);
       return (
@@ -209,14 +196,6 @@ export class TravelMap {
       providerLabel.textContent = fallbackLoaded
         ? `${this.provider().name} + 备用`
         : this.provider().name;
-    if (!needed || loaded === needed) {
-      box.hidden = true;
-      return;
-    }
-    label.textContent = failed
-      ? `底图 ${loaded}/${needed} · ${failed} 块失败，已自动重试/切换备用源`
-      : `底图 ${loaded}/${needed} · 正在加载 ${loading} 块…`;
-    box.hidden = !(forceVisible || failed > 0);
   }
   pruneTileCache() {
     if (this.tiles.size <= this.tileCacheLimit) return;

@@ -605,8 +605,8 @@ try {
     { primaryRequests, fallbackRequests },
   );
   check(
-    "successful fallback hides the incomplete-map warning",
-    await fallbackPage.locator("#tile-error").isHidden(),
+    "fallback recovery stays silent without an intrusive warning banner",
+    (await fallbackPage.locator("#tile-error").count()) === 0,
   );
   check(
     "fallback source is visible in map attribution",
