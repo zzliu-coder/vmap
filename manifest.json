@@ -1,5 +1,5 @@
 {
-  "version": "4.1.0",
+  "version": "4.2.0",
   "buildDate": "2026-09-25",
   "totalCatalog": 214,
   "mapped": 200,
@@ -27,7 +27,9 @@
       "mapped": 11
     }
   },
-  "excludedCoordinateConflicts": ["VN109"],
+  "excludedCoordinateConflicts": [
+    "VN109"
+  ],
   "attribution": "Jerry Ng · ngshiheng/michelin-my-maps · CC BY-NC 4.0; factual location data originally from the MICHELIN Guide",
   "datasetCommitBlob": "e1502bb2e4bb746f1e215ec74ec05a98383604b7",
   "source": "https://github.com/ngshiheng/michelin-my-maps",

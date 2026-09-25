@@ -948,3 +948,206 @@ body.clean #restore-panels {
     transition: none;
   }
 }
+.coordinate-panel {
+  margin-top: 5px;
+  padding: 7px 8px;
+  background: #fffffff2;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px #1232;
+}
+.coordinate-panel > span {
+  display: block;
+  font:
+    650 12px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  user-select: all;
+}
+.coordinate-panel > div {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+.coordinate-panel button {
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 7px;
+  font-size: 10px;
+  box-shadow: none;
+}
+.checkin-button {
+  background: #eef8f2;
+  border-color: #b9dfc6;
+  color: #116b43;
+  font-weight: 700;
+}
+#checkin-dialog,
+#journal-dialog {
+  width: min(720px, 94vw);
+  max-width: min(720px, 94vw);
+  max-height: 90dvh;
+  padding: 16px;
+}
+#checkin-form label {
+  display: block;
+  margin: 11px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+#checkin-form input:not([type="file"]),
+#checkin-form textarea,
+#checkin-form input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faf9;
+  color: var(--ink);
+  padding: 9px;
+}
+#checkin-form textarea {
+  resize: vertical;
+}
+.dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dialog-actions button {
+  margin-top: 0;
+}
+button.primary {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.checkin-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.checkin-preview figure {
+  margin: 0;
+  position: relative;
+}
+.checkin-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.checkin-preview figcaption {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  background: #153337dd;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 9px;
+}
+.journal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+}
+.journal-head h2 {
+  margin: 0;
+}
+.journal-head button {
+  width: auto;
+  margin: 0;
+}
+.journal-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.journal-actions button {
+  width: auto;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+#journal-list {
+  max-height: 62dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--line);
+}
+.journal-entry {
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.journal-entry time,
+.journal-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+.journal-entry h3 {
+  margin: 5px 0;
+  font-size: 17px;
+}
+.journal-note {
+  line-height: 1.65;
+  margin: 8px 0;
+}
+.journal-photos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 9px;
+}
+.journal-photos img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.journal-entry .rowactions button {
+  width: auto;
+  margin-top: 0;
+}
+button.danger {
+  color: #a7313b;
+  border-color: #ebc6ca;
+}
+.journal-warning {
+  margin: 10px 0 0;
+  padding: 9px;
+  background: #fff4df;
+  border-radius: 8px;
+  color: #7a5417;
+}
+@media (max-width: 520px) {
+  #checkin-dialog,
+  #journal-dialog {
+    width: 96vw;
+    max-width: 96vw;
+    padding: 13px;
+  }
+  .checkin-preview,
+  .journal-photos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #journal-list {
+    max-height: 64dvh;
+  }
+  .header-actions {
+    gap: 4px;
+  }
+  .header-actions button {
+    padding: 4px 7px;
+  }
+}

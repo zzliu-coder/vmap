@@ -8,16 +8,17 @@
     />
     <meta name="theme-color" content="#153337" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>越南随行地图 · v4</title>
-    <link rel="stylesheet" href="assets/style.css?v=4" />
-    <script type="module" src="assets/app.mjs?v=4"></script>
+    <title>越南随行地图 · v4.2.0</title>
+    <link rel="stylesheet" href="assets/style.css?v=4.2.0" />
+    <script type="module" src="assets/app.mjs?v=4.2.0"></script>
   </head>
   <body>
     <div id="app">
       <header id="header">
         <div class="titlebar">
-          <h1>越南随行地图 <span class="version">v4.1.0</span></h1>
+          <h1>越南随行地图 <span class="version">v4.2.0</span></h1>
           <div class="header-actions">
+            <button id="journal-open">日记</button>
             <button
               id="filter-toggle"
               aria-expanded="false"
@@ -123,6 +124,13 @@
             <div id="gps-status" class="gpsstatus" role="status">
               地点已上图。定位后可以看离你多远。
             </div>
+            <div id="coordinate-panel" class="coordinate-panel" hidden>
+              <span id="coordinate-value"></span>
+              <div>
+                <button id="copy-coordinates">复制经纬度</button>
+                <button id="checkin-current">当前位置打卡</button>
+              </div>
+            </div>
           </div>
           <div id="tile-error" class="tile-error" role="status" hidden>
             底图暂未加载成功，请检查网络。地点列表与 Google Maps 入口仍可使用。
@@ -170,6 +178,64 @@
         ></textarea
         ><button value="close">完成</button>
       </form>
+    </dialog>
+    <dialog id="checkin-dialog">
+      <form id="checkin-form">
+        <h2 id="checkin-heading">地点打卡</h2>
+        <label
+          >地点名称<input id="checkin-title" required maxlength="120"
+        /></label>
+        <label
+          >时间<input id="checkin-time" type="datetime-local" required
+        /></label>
+        <p id="checkin-location" class="fine"></p>
+        <label
+          >备注<textarea
+            id="checkin-note"
+            rows="5"
+            maxlength="4000"
+            placeholder="今天吃了什么、发生了什么、值不值得再来……"
+          ></textarea>
+        </label>
+        <label
+          >照片<input id="checkin-photos" type="file" accept="image/*" multiple
+        /></label>
+        <div id="checkin-preview" class="checkin-preview"></div>
+        <p class="fine">
+          最多保存 8 张；大图会压缩。照片和备注只存在这台设备的浏览器里。
+        </p>
+        <div class="dialog-actions">
+          <button type="button" id="checkin-cancel">取消</button
+          ><button class="primary" type="submit" id="checkin-save">
+            保存打卡
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="journal-dialog">
+      <div class="journal-head">
+        <div>
+          <h2>旅行日记</h2>
+          <p id="journal-summary" class="fine"></p>
+        </div>
+        <button id="journal-close">关闭</button>
+      </div>
+      <div class="journal-actions">
+        <button id="journal-new">当前位置打卡</button
+        ><button id="journal-export-html">导出日记 HTML</button
+        ><button id="journal-export-backup">备份 JSON</button
+        ><button id="journal-import">导入备份</button
+        ><input
+          id="journal-import-file"
+          type="file"
+          accept="application/json,.json"
+          hidden
+        />
+      </div>
+      <div id="journal-list"></div>
+      <p class="journal-warning">
+        打卡资料保存在当前浏览器本地。清除网站数据、卸载浏览器或换手机可能丢失，请定期导出备份。
+      </p>
     </dialog>
     <noscript
       ><p>

@@ -19,11 +19,27 @@ import {
   validateCatalog,
 } from "./core.mjs";
 import { TravelMap } from "./map.mjs";
+import {
+  coordinateText,
+  deleteCheckin,
+  exportBackup,
+  exportJournalHTML,
+  importBackup,
+  listCheckins,
+  locationLabel,
+  newCheckinId,
+  preparePhotos,
+  saveCheckin,
+  storageInfo,
+} from "./journal.mjs";
 const $ = (id) => document.getElementById(id);
 let DATA = [],
   CITIES = [],
   MANIFEST = {},
-  map;
+  map,
+  checkinContext = null,
+  pendingCurrentCheckin = false,
+  journalObjectUrls = [];
 const state = {
   city: "dn",
   year: "2026",
@@ -180,7 +196,7 @@ function metadata(r) {
   return `<span class="tag ${st.className}">${esc(st.label)}</span><span>${esc(r.cityName || "")}</span>${hasPrice(r) ? `<span class="price">${price(r)}${r.category === "restaurant" ? "/人" : ""}</span><span class="estimate">${isOfficial(r) ? "官方套餐 · 税费前" : "预算估算"}</span>` : '<span class="estimate">价格待核对</span>'}`;
 }
 function sourceFooter() {
-  return `<details class="source"><summary>图例 · 数据、价格与隐私</summary><p class="legend-text">蓝点＝我的位置；橙点＝手动参考位置；★＝一星；B＝必比登；绿色圆点＝入选；景/咖/宿/购/站＝相应地点类别。</p><p>v${esc(MANIFEST.version)} · 已收录${DATA.length}处，${DATA.filter(hasPoint).length}处有公开坐标。当前覆盖来自维护的清单，尚未接入实时商家搜索。坐标待核对的记录仍保留在列表。</p><p>原203家餐厅的坐标与地址：<a href="https://github.com/ngshiheng/michelin-my-maps" target="_blank" rel="noopener">Jerry Ng / michelin-my-maps</a>，CC BY-NC 4.0；原始位置资料来自 MICHELIN Guide。后续地点逐项记录来源。会安古城新增11个非米其林本地口碑点；2026米其林官方只覆盖河内、胡志明市和岘港。个人非商业旅行使用；公开坐标未经现场测量。</p><p>原米其林餐厅沿用2026-09-24旅行预算；新增地点按各自参考日期记录。参考1人民币≈3,871.81越南盾。大部分为估算；官方套餐需另核税费、饮品及午晚餐差别。临行核对营业、地址和分店。</p><p>Google Maps 按门店资料查询照片与评价。Grab 地点码采用 Google 开源 Open Location Code 在本页生成，只编码地点坐标；请核对下车点与临街入口。<a href="https://www.grab.com/vn/macong/" target="_blank" rel="noopener">Grab 官方地点码说明</a>。</p><p>定位与距离在本页计算，不保存GPS或轨迹，不发送到本项目服务器。想去地点ID与筛选偏好仅保存在本浏览器。底图服务会收到浏览区域的瓦片请求；点击外部链接后适用相应服务的隐私政策。</p><p>增加/纠正地点：把 Google Maps 分享链接、用途和城市发给我；可补充独立的下车入口。<a href="https://github.com/zzliu-coder/vmap" target="_blank" rel="noopener">查看数据仓库</a>。</p></details>`;
+  return `<details class="source"><summary>图例 · 数据、价格与隐私</summary><p class="legend-text">蓝点＝我的位置；橙点＝手动参考位置；★＝一星；B＝必比登；绿色圆点＝入选；景/咖/宿/购/站＝相应地点类别。</p><p>v${esc(MANIFEST.version)} · 已收录${DATA.length}处，${DATA.filter(hasPoint).length}处有公开坐标。当前覆盖来自维护的清单，尚未接入实时商家搜索。坐标待核对的记录仍保留在列表。</p><p>原203家餐厅的坐标与地址：<a href="https://github.com/ngshiheng/michelin-my-maps" target="_blank" rel="noopener">Jerry Ng / michelin-my-maps</a>，CC BY-NC 4.0；原始位置资料来自 MICHELIN Guide。后续地点逐项记录来源。会安古城新增11个非米其林本地口碑点；2026米其林官方只覆盖河内、胡志明市和岘港。个人非商业旅行使用；公开坐标未经现场测量。</p><p>原米其林餐厅沿用2026-09-24旅行预算；新增地点按各自参考日期记录。参考1人民币≈3,871.81越南盾。大部分为估算；官方套餐需另核税费、饮品及午晚餐差别。临行核对营业、地址和分店。</p><p>Google Maps 按门店资料查询照片与评价。Grab 地点码采用 Google 开源 Open Location Code 在本页生成，只编码地点坐标；请核对下车点与临街入口。<a href="https://www.grab.com/vn/macong/" target="_blank" rel="noopener">Grab 官方地点码说明</a>。</p><p>实时定位与距离在本页计算，不保存轨迹，也不发送到本项目服务器。只有主动打卡时，才把当时的坐标快照、备注和照片写入当前浏览器 IndexedDB；想去地点ID与筛选偏好也仅保存在本浏览器。清除网站数据或换设备可能丢失打卡，请定期导出备份。底图服务会收到浏览区域的瓦片请求；点击外部链接后适用相应服务的隐私政策。</p><p>增加/纠正地点：把 Google Maps 分享链接、用途和城市发给我；可补充独立的下车入口。<a href="https://github.com/zzliu-coder/vmap" target="_blank" rel="noopener">查看数据仓库</a>。</p></details>`;
 }
 function listHTML(rows) {
   const count = rows.filter(hasPoint).length;
@@ -221,6 +237,7 @@ function render(fit = false) {
         )),
     );
   syncControls();
+  updateCoordinatePanel();
   if (fit) map.fit(rows.filter(hasPoint));
   persist();
 }
@@ -235,7 +252,7 @@ function showDetail(id, { pan = true } = {}) {
     destination = destinationPoint(r),
     fav = state.favorites.has(id);
   $("results").innerHTML =
-    `<div class="detail"><button class="back" id="back-list">← 返回地点列表</button><div class="r-top"><h2>${esc(r.name)}</h2><button class="favorite" data-favorite="${id}" aria-label="${fav ? "取消" : "加入"}想去" aria-pressed="${fav}">${fav ? "♥" : "♡"}</button></div><div class="r-meta">${metadata(r)}<span class="r-distance current-distance">${esc(distanceText(state.user, r))}</span></div><div class="food">${esc(r.description || r.food || "详情待补充")}</div>${r.closed ? '<div class="banner">资料标注暂时停业，先与门店确认。</div>' : ""}<div class="rowactions">${external(googlePlaceUrl(r, CITIES), "Google Maps · 照片/评价 ↗", "google")}<button class="grab" data-copy-code="${id}" ${code ? "" : "disabled"}>复制 Grab 地点码</button></div><p class="fine">先在 Google Maps 查看门店与照片，确认分店；然后复制地点码到 Grab 的目的地框。${r.googleMapsUrl || r.googlePlaceId ? "已保存专用门店链接。" : "当前按店名＋街道＋城市查询，结果仍需核对。"}</p>${code ? `<div class="codebox"><strong>${r.dropoff ? "单独记录的下车点" : "此地点的完整 Plus Code"}</strong><code>${esc(code)}</code><p>复制的内容只有这段代码。到 Grab 粘贴 → 核对终点图钉和入口 → 再叫车。</p><p>${esc(r.dropoff?.label || "由公开坐标生成，入口未逐家核准。点位编码不会提高原始坐标的准确性。")}</p><div class="rowactions">${external(googlePinUrl(r), "核对地点码落点 ↗", "minor")}${external(googleDirectionsUrl(r, CITIES), "Google 路线 ↗", "minor")}</div></div>` : '<div class="banner">该地点的坐标待补。Grab 地点码暂不可用，可先到 Google Maps 核对位置。</div>'}<div class="address">📍 ${esc(r.address || "街道地址待核对")}</div><div class="rowactions"><button class="minor" data-copy-name="${id}">只复制店名</button><button class="minor" data-copy-address="${id}" ${r.address ? "" : "disabled"}>只复制街道地址</button><button class="minor" data-copy-info="${id}">复制地点信息/反馈</button></div>${r.notes ? `<div class="banner">${esc(r.notes)}</div>` : ""}<details class="extra"><summary>价格、年度、来源与坐标详情</summary>${hasPrice(r) ? `<div class="bigprice">${price(r)} <span>${r.category === "restaurant" ? "/ 成人每餐" : "/ 参考花费"}</span></div><p class="fine">${esc(r.priceBasis || "待核实")} · 参考日期 ${esc(r.priceDate || "待补")}</p><p class="fine">${esc(r.priceDetail || "")} ${esc(r.charges || "")}</p>` : '<p class="fine">价格尚未核对，未按 ¥0 处理。</p>'}<div class="years">${
+    `<div class="detail"><button class="back" id="back-list">← 返回地点列表</button><div class="r-top"><h2>${esc(r.name)}</h2><button class="favorite" data-favorite="${id}" aria-label="${fav ? "取消" : "加入"}想去" aria-pressed="${fav}">${fav ? "♥" : "♡"}</button></div><div class="r-meta">${metadata(r)}<span class="r-distance current-distance">${esc(distanceText(state.user, r))}</span></div><div class="food">${esc(r.description || r.food || "详情待补充")}</div>${r.closed ? '<div class="banner">资料标注暂时停业，先与门店确认。</div>' : ""}<div class="rowactions">${external(googlePlaceUrl(r, CITIES), "Google Maps · 照片/评价 ↗", "google")}<button class="grab" data-copy-code="${id}" ${code ? "" : "disabled"}>复制 Grab 地点码</button><button class="checkin-button" data-checkin-place="${id}">✓ 在这里打卡</button></div><p class="fine">先在 Google Maps 查看门店与照片，确认分店；然后复制地点码到 Grab 的目的地框。${r.googleMapsUrl || r.googlePlaceId ? "已保存专用门店链接。" : "当前按店名＋街道＋城市查询，结果仍需核对。"}</p>${code ? `<div class="codebox"><strong>${r.dropoff ? "单独记录的下车点" : "此地点的完整 Plus Code"}</strong><code>${esc(code)}</code><p>复制的内容只有这段代码。到 Grab 粘贴 → 核对终点图钉和入口 → 再叫车。</p><p>${esc(r.dropoff?.label || "由公开坐标生成，入口未逐家核准。点位编码不会提高原始坐标的准确性。")}</p><div class="rowactions">${external(googlePinUrl(r), "核对地点码落点 ↗", "minor")}${external(googleDirectionsUrl(r, CITIES), "Google 路线 ↗", "minor")}</div></div>` : '<div class="banner">该地点的坐标待补。Grab 地点码暂不可用，可先到 Google Maps 核对位置。</div>'}<div class="address">📍 ${esc(r.address || "街道地址待核对")}</div><div class="rowactions"><button class="minor" data-copy-name="${id}">只复制店名</button><button class="minor" data-copy-address="${id}" ${r.address ? "" : "disabled"}>只复制街道地址</button><button class="minor" data-copy-info="${id}">复制地点信息/反馈</button></div>${r.notes ? `<div class="banner">${esc(r.notes)}</div>` : ""}<details class="extra"><summary>价格、年度、来源与坐标详情</summary>${hasPrice(r) ? `<div class="bigprice">${price(r)} <span>${r.category === "restaurant" ? "/ 成人每餐" : "/ 参考花费"}</span></div><p class="fine">${esc(r.priceBasis || "待核实")} · 参考日期 ${esc(r.priceDate || "待补")}</p><p class="fine">${esc(r.priceDetail || "")} ${esc(r.charges || "")}</p>` : '<p class="fine">价格尚未核对，未按 ¥0 处理。</p>'}<div class="years">${
       Object.entries(r.awards || {})
         .sort()
         .map(([y, a]) => `${esc(y)}：${esc(a || "未在本年度名单")}`)
@@ -257,6 +274,105 @@ function status(message, error = false) {
   $("gps-status").textContent = message;
   $("gps-status").classList.toggle("error", error);
 }
+function updateCoordinatePanel() {
+  const panel = $("coordinate-panel");
+  if (!hasPoint(state.user)) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const source = state.user.manual ? "临时位置" : "GPS";
+  const accuracy =
+    Number.isFinite(state.user.accuracy) && state.user.accuracy > 0
+      ? ` · ±${Math.round(state.user.accuracy)}m`
+      : "";
+  $("coordinate-value").textContent =
+    `${source} · ${coordinateText(state.user)}${accuracy}`;
+}
+
+const localDateTimeValue = (date = new Date()) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
+function checkinPoint(place, existing = null) {
+  if (existing?.coords)
+    return {
+      coords: existing.coords,
+      locationSource: existing.locationSource || "unknown",
+    };
+  if (hasPoint(state.user))
+    return {
+      coords: {
+        lat: state.user.lat,
+        lon: state.user.lon,
+        accuracy: state.user.accuracy || 0,
+      },
+      locationSource: state.user.manual ? "manual" : "gps",
+    };
+  if (hasPoint(place))
+    return {
+      coords: { lat: place.lat, lon: place.lon, accuracy: null },
+      locationSource: "place",
+    };
+  return { coords: null, locationSource: "unknown" };
+}
+
+let checkinPreviewUrls = [];
+function clearCheckinPreviewUrls() {
+  checkinPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+  checkinPreviewUrls = [];
+}
+
+function renderCheckinPreview() {
+  clearCheckinPreviewUrls();
+  const existing = checkinContext?.existing?.photos || [];
+  const files = [...($("checkin-photos").files || [])].slice(
+    0,
+    Math.max(0, 8 - existing.length),
+  );
+  const all = [
+    ...existing.map((p) => ({ blob: p.blob, label: "已保存" })),
+    ...files.map((file) => ({ blob: file, label: "新增" })),
+  ];
+  $("checkin-preview").innerHTML = all
+    .map((p) => {
+      const url = URL.createObjectURL(p.blob);
+      checkinPreviewUrls.push(url);
+      return `<figure><img src="${esc(url)}" alt=""><figcaption>${p.label}</figcaption></figure>`;
+    })
+    .join("");
+}
+
+async function openCheckin(
+  placeId = "",
+  existing = null,
+  returnToJournal = false,
+) {
+  const place = placeId ? DATA.find((r) => r.id === placeId) : null;
+  if (!existing && !place && !hasPoint(state.user)) {
+    pendingCurrentCheckin = { returnToJournal };
+    startLocation(false);
+    toast("先获取当前位置，定位成功后会自动打开打卡。");
+    return;
+  }
+  const location = checkinPoint(place, existing);
+  checkinContext = { place, existing, returnToJournal, ...location };
+  $("checkin-heading").textContent = existing ? "编辑打卡" : "地点打卡";
+  $("checkin-title").value = existing?.title || place?.name || "当前位置";
+  $("checkin-time").value = localDateTimeValue(
+    existing?.createdAt ? new Date(existing.createdAt) : new Date(),
+  );
+  $("checkin-note").value = existing?.note || "";
+  $("checkin-photos").value = "";
+  const locText = location.coords
+    ? `${locationLabel(location.locationSource)} · ${coordinateText(location.coords)}${Number.isFinite(location.coords.accuracy) && location.coords.accuracy > 0 ? ` · ±${Math.round(location.coords.accuracy)}m` : ""}`
+    : "本次不记录坐标";
+  $("checkin-location").textContent = locText;
+  renderCheckinPreview();
+  $("checkin-dialog").showModal();
+}
+
 async function copyText(text, label) {
   try {
     if (!navigator.clipboard?.writeText || !window.isSecureContext)
@@ -359,6 +475,11 @@ function receivePosition(p, follow, first) {
     else if (state.following) map.pan(state.user);
   }
   map.queue();
+  if (pendingCurrentCheckin) {
+    const pending = pendingCurrentCheckin;
+    pendingCurrentCheckin = false;
+    openCheckin("", null, pending.returnToJournal);
+  }
 }
 function startLocation(follow) {
   if (!window.isSecureContext || location.protocol === "content:") {
@@ -395,6 +516,7 @@ function startLocation(follow) {
       3: "定位超时。已保留地点，稍后重试或用地图中心作临时位置。",
     };
     status(msg[e.code] || "定位失败，请重试。", true);
+    pendingCurrentCheckin = false;
     if (!follow || e.code === 1) clearWatch();
   };
   const options = {
@@ -417,7 +539,131 @@ function resetFilters() {
   state.selected = null;
   render(true);
 }
+async function submitCheckin(event) {
+  event.preventDefault();
+  if (!checkinContext) return;
+  const saveButton = $("checkin-save");
+  saveButton.disabled = true;
+  try {
+    const existing = checkinContext.existing;
+    const existingPhotos = existing?.photos || [];
+    const slots = Math.max(0, 8 - existingPhotos.length);
+    const addedPhotos = await preparePhotos($("checkin-photos").files, slots);
+    const date = new Date($("checkin-time").value);
+    if (Number.isNaN(date.getTime())) throw new Error("打卡时间无效");
+    const place = checkinContext.place;
+    const entry = {
+      id: existing?.id || newCheckinId(),
+      createdAt: date.toISOString(),
+      updatedAt: new Date().toISOString(),
+      title: $("checkin-title").value.trim(),
+      note: $("checkin-note").value.trim(),
+      placeId: place?.id || existing?.placeId || "",
+      cityName: place?.cityName || existing?.cityName || "",
+      address: place?.address || existing?.address || "",
+      coords: checkinContext.coords,
+      locationSource: checkinContext.locationSource,
+      photos: [...existingPhotos, ...addedPhotos],
+    };
+    if (!entry.title) throw new Error("请填写地点名称");
+    await saveCheckin(entry);
+    const returnToJournal = checkinContext.returnToJournal;
+    $("checkin-dialog").close();
+    clearCheckinPreviewUrls();
+    checkinContext = null;
+    toast(existing ? "打卡已更新。" : "打卡已保存到这台设备。");
+    await refreshJournalCount();
+    if (returnToJournal) await showJournal();
+  } catch (e) {
+    toast("保存失败：" + (e?.message || e));
+  } finally {
+    saveButton.disabled = false;
+  }
+}
+
+async function refreshJournalCount() {
+  try {
+    const entries = await listCheckins();
+    $("journal-open").textContent = entries.length
+      ? `日记 ${entries.length}`
+      : "日记";
+  } catch {
+    $("journal-open").textContent = "日记";
+  }
+}
+
+function clearJournalObjectUrls() {
+  journalObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  journalObjectUrls = [];
+}
+
+function journalEntryHTML(entry) {
+  const photos = (entry.photos || [])
+    .slice(0, 4)
+    .map((p) => {
+      const url = URL.createObjectURL(p.blob);
+      journalObjectUrls.push(url);
+      return `<img src="${esc(url)}" alt="${esc(p.name || "旅行照片")}">`;
+    })
+    .join("");
+  const coords = entry.coords
+    ? `${coordinateText(entry.coords)} · ${locationLabel(entry.locationSource)}`
+    : "未记录坐标";
+  return `<article class="journal-entry" data-entry-id="${esc(entry.id)}">
+    <time>${esc(new Date(entry.createdAt).toLocaleString("zh-CN"))}</time>
+    <h3>${esc(entry.title)}</h3>
+    <p class="journal-meta">${esc([entry.cityName, coords].filter(Boolean).join(" · "))}</p>
+    ${entry.note ? `<p class="journal-note">${esc(entry.note).replace(/\n/g, "<br>")}</p>` : ""}
+    ${photos ? `<div class="journal-photos">${photos}</div>` : ""}
+    <div class="rowactions">
+      ${entry.placeId && DATA.some((r) => r.id === entry.placeId) ? `<button data-journal-place="${esc(entry.placeId)}">地图地点</button>` : ""}
+      ${entry.coords ? `<button data-copy-entry-coords="${esc(entry.id)}">复制经纬度</button>` : ""}
+      <button data-edit-checkin="${esc(entry.id)}">编辑</button>
+      <button class="danger" data-delete-checkin="${esc(entry.id)}">删除</button>
+    </div>
+  </article>`;
+}
+
+async function showJournal() {
+  try {
+    clearJournalObjectUrls();
+    const entries = await listCheckins();
+    const storage = await storageInfo();
+    const photoCount = entries.reduce((n, e) => n + (e.photos?.length || 0), 0);
+    const used = storage ? (storage.usage / 1024 / 1024).toFixed(1) : null;
+    $("journal-summary").textContent =
+      `${entries.length} 次打卡 · ${photoCount} 张照片${used ? ` · 浏览器已用约 ${used} MB` : ""}`;
+    $("journal-list").innerHTML = entries.length
+      ? entries.map(journalEntryHTML).join("")
+      : '<div class="empty">还没有打卡。定位后可以直接“当前位置打卡”，也可以在某个地点详情里打卡。</div>';
+    if (!$("journal-dialog").open) $("journal-dialog").showModal();
+  } catch (e) {
+    toast("旅行日记无法打开：" + (e?.message || e));
+  }
+}
+
 function bindEvents() {
+  $("journal-open").onclick = showJournal;
+  $("copy-coordinates").onclick = () => {
+    if (!hasPoint(state.user)) return;
+    copyText(
+      coordinateText(state.user),
+      "经纬度已复制；直接发给我即可按这个位置查附近地点。",
+    );
+  };
+  $("checkin-current").onclick = () => openCheckin();
+  $("checkin-form").addEventListener("submit", submitCheckin);
+  $("checkin-cancel").onclick = () => {
+    $("checkin-dialog").close();
+    clearCheckinPreviewUrls();
+    checkinContext = null;
+  };
+  $("checkin-photos").onchange = renderCheckinPreview;
+  $("checkin-dialog").addEventListener("close", () => {
+    clearCheckinPreviewUrls();
+    checkinContext = null;
+  });
+  $("journal-dialog").addEventListener("close", clearJournalObjectUrls);
   $("filter-toggle").onclick = () => {
     const open = $("filters").hidden;
     $("filters").hidden = !open;
@@ -468,6 +714,42 @@ function bindEvents() {
     render();
     status("已清除位置。地点清单与导航照常使用。");
   };
+  $("journal-close").onclick = () => {
+    $("journal-dialog").close();
+    clearJournalObjectUrls();
+  };
+  $("journal-new").onclick = () => {
+    $("journal-dialog").close();
+    clearJournalObjectUrls();
+    openCheckin("", null, true);
+  };
+  $("journal-export-html").onclick = async () => {
+    const entries = await listCheckins();
+    if (!entries.length) return toast("还没有可以导出的打卡记录。");
+    await exportJournalHTML(entries);
+    toast("旅行日记 HTML 已生成。");
+  };
+  $("journal-export-backup").onclick = async () => {
+    const entries = await listCheckins();
+    if (!entries.length) return toast("还没有可以备份的打卡记录。");
+    await exportBackup(entries);
+    toast("JSON 备份已生成。");
+  };
+  $("journal-import").onclick = () => $("journal-import-file").click();
+  $("journal-import-file").onchange = async () => {
+    const file = $("journal-import-file").files?.[0];
+    if (!file) return;
+    try {
+      const count = await importBackup(file);
+      toast(`已导入 ${count} 条打卡记录。`);
+      await refreshJournalCount();
+      await showJournal();
+    } catch (e) {
+      toast("导入失败：" + (e?.message || e));
+    } finally {
+      $("journal-import-file").value = "";
+    }
+  };
   $("favorites-toggle").onclick = () => {
     state.favoritesOnly = !state.favoritesOnly;
     state.selected = null;
@@ -506,12 +788,43 @@ function bindEvents() {
     state.selected = null;
     render(true);
   };
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const t = e.target;
     let el;
     if ((el = t.closest("[data-detail]"))) showDetail(el.dataset.detail);
     else if (t.closest("#back-list")) backToList();
-    else if ((el = t.closest("[data-copy-code]")))
+    else if ((el = t.closest("[data-checkin-place]")))
+      openCheckin(el.dataset.checkinPlace);
+    else if ((el = t.closest("[data-journal-place]"))) {
+      $("journal-dialog").close();
+      clearJournalObjectUrls();
+      showDetail(el.dataset.journalPlace);
+    } else if ((el = t.closest("[data-copy-entry-coords]"))) {
+      const entry = (await listCheckins()).find(
+        (x) => x.id === el.dataset.copyEntryCoords,
+      );
+      if (entry?.coords)
+        copyText(coordinateText(entry.coords), "这次打卡的经纬度已复制。");
+    } else if ((el = t.closest("[data-edit-checkin]"))) {
+      const entry = (await listCheckins()).find(
+        (x) => x.id === el.dataset.editCheckin,
+      );
+      if (entry) {
+        $("journal-dialog").close();
+        clearJournalObjectUrls();
+        await openCheckin(entry.placeId || "", entry, true);
+      }
+    } else if ((el = t.closest("[data-delete-checkin]"))) {
+      const entry = (await listCheckins()).find(
+        (x) => x.id === el.dataset.deleteCheckin,
+      );
+      if (entry && confirm(`删除“${entry.title}”这次打卡和其中照片？`)) {
+        await deleteCheckin(entry.id);
+        toast("打卡已删除。");
+        await refreshJournalCount();
+        await showJournal();
+      }
+    } else if ((el = t.closest("[data-copy-code]")))
       copyGrab(el.dataset.copyCode);
     else if ((el = t.closest("[data-favorite]"))) {
       const id = el.dataset.favorite;
@@ -623,6 +936,7 @@ async function boot() {
       onPan: pauseFollowForPan,
     });
     bindEvents();
+    refreshJournalCount();
     setSheet(state.sheet);
     render();
     if (state.selected) showDetail(state.selected);

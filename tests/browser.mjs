@@ -322,6 +322,13 @@ try {
     (await p.locator(".pin").count()) === 78 &&
       (await p.locator(".place").count()) === 81,
   );
+  await p.selectOption("#city", "hoi-an");
+  check(
+    "Hoi An 11 local picks are mapped",
+    (await p.locator(".pin").count()) === 11 &&
+      (await p.locator(".place").count()) === 11,
+  );
+  await p.selectOption("#city", "hcm");
   await p.evaluate(() => window.__travelMap.showDetail("VN109"));
   check(
     "unverified coordinates cannot generate a Grab code",
@@ -452,6 +459,107 @@ try {
       .then((t) => t.includes("超时")),
   );
   await fc.close();
+  const { page: journal, context: jc } = await newPage();
+  await journal.click("#locate");
+  await journal.waitForSelector("#coordinate-panel:not([hidden])");
+  check(
+    "current coordinates are visible with accuracy",
+    await journal
+      .locator("#coordinate-value")
+      .textContent()
+      .then((t) => t.includes("16.067000,108.241000") && t.includes("±20m")),
+  );
+  await journal.click("#copy-coordinates");
+  check(
+    "current coordinates copy as a clean lat,lon pair",
+    (await journal.evaluate(() => window.__copied)) === "16.067000,108.241000",
+  );
+  await journal.evaluate(() =>
+    window.__travelMap.showDetail(
+      window.__travelMap.DATA.find((r) => r.name.includes("Bánh Xèo Bà Dưỡng"))
+        .id,
+    ),
+  );
+  check(
+    "place detail offers check-in",
+    await journal.locator(".detail [data-checkin-place]").isVisible(),
+  );
+  await journal.click(".detail [data-checkin-place]");
+  await journal.waitForSelector("#checkin-dialog[open]");
+  await journal.fill("#checkin-note", "测试打卡：煎饼很好吃");
+  await journal.setInputFiles("#checkin-photos", {
+    name: "tiny.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await journal.click("#checkin-save");
+  await journal.waitForSelector("#checkin-dialog", { state: "hidden" });
+  check(
+    "check-in count appears in header",
+    await journal
+      .locator("#journal-open")
+      .textContent()
+      .then((t) => t.includes("1")),
+  );
+  await journal.reload({ waitUntil: "networkidle" });
+  await journal.waitForFunction(() => !!window.__travelMap);
+  await journal.waitForFunction(() =>
+    document.querySelector("#journal-open")?.textContent.includes("1"),
+  );
+  check(
+    "check-in and photo persist across page reload",
+    await journal
+      .locator("#journal-open")
+      .textContent()
+      .then((t) => t.includes("1")),
+  );
+  await journal.click("#journal-open");
+  await journal.waitForSelector("#journal-dialog[open]");
+  check(
+    "journal stores note and photo locally",
+    (await journal.locator(".journal-entry").count()) === 1 &&
+      (await journal.locator(".journal-photos img").count()) === 1 &&
+      (await journal
+        .locator(".journal-note")
+        .textContent()
+        .then((t) => t.includes("煎饼很好吃"))),
+  );
+  await journal.click("[data-copy-entry-coords]");
+  await journal.waitForFunction(
+    () => window.__copied === "16.067000,108.241000",
+  );
+  check(
+    "journal check-in preserves and copies GPS coordinates",
+    (await journal.evaluate(() => window.__copied)) === "16.067000,108.241000",
+  );
+  const [backup] = await Promise.all([
+    journal.waitForEvent("download"),
+    journal.click("#journal-export-backup"),
+  ]);
+  check(
+    "journal JSON backup downloads",
+    (await backup.suggestedFilename()).endsWith(".json"),
+  );
+  const [diary] = await Promise.all([
+    journal.waitForEvent("download"),
+    journal.click("#journal-export-html"),
+  ]);
+  check(
+    "standalone travel diary HTML downloads",
+    (await diary.suggestedFilename()).endsWith(".html"),
+  );
+  journal.once("dialog", (d) => d.accept());
+  await journal.click("[data-delete-checkin]");
+  await journal.waitForTimeout(80);
+  check(
+    "check-in deletion removes note and stored photo",
+    (await journal.locator(".journal-entry").count()) === 0 &&
+      (await journal.locator("#journal-open").textContent()) === "日记",
+  );
+  await jc.close();
   check("no browser JavaScript errors", errors.length === 0, errors);
   const { page: extra, context: ec } = await newPage();
   const fixtures = JSON.parse(
@@ -562,7 +670,7 @@ try {
         limitations: [
           "GPS and clipboard simulated. No actual Grab app search, booking, payment or ride was performed.",
           "Most tile requests stubbed; live OSM only when VMAP_LIVE_TILES=1.",
-          "Fourth-city fixture exists only in intercepted browser responses. No real new location was published.",
+          "Additional-city fixture exists only in intercepted browser responses. Real Hoi An data is loaded from the product catalog.",
         ],
       },
       null,
