@@ -491,7 +491,7 @@ try {
   await extra.waitForFunction(() => !!window.__travelMap);
   await extra.selectOption("#city", "test-city");
   check(
-    "fourth city automatically appears from independent data",
+    "additional city automatically appears from independent data",
     (await extra.locator(".pin").count()) === 1,
   );
   check(

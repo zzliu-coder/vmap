@@ -1,32 +1,37 @@
 {
-  "version": "4.0.0",
+  "version": "4.1.0",
   "buildDate": "2026-09-25",
-  "totalCatalog": 203,
-  "mapped": 189,
+  "totalCatalog": 214,
+  "mapped": 200,
   "cities": {
     "dn": {
-      "catalog": 47,
+      "2025": 43,
       "2026": 47,
+      "catalog": 47,
       "mapped": 47
     },
     "hn": {
-      "catalog": 70,
+      "2025": 63,
       "2026": 65,
+      "catalog": 70,
       "mapped": 64
     },
     "hcm": {
-      "catalog": 86,
+      "2025": 75,
       "2026": 81,
+      "catalog": 86,
       "mapped": 78
+    },
+    "hoi-an": {
+      "catalog": 11,
+      "mapped": 11
     }
   },
-  "excludedCoordinateConflicts": [
-    "VN109"
-  ],
+  "excludedCoordinateConflicts": ["VN109"],
   "attribution": "Jerry Ng · ngshiheng/michelin-my-maps · CC BY-NC 4.0; factual location data originally from the MICHELIN Guide",
   "datasetCommitBlob": "e1502bb2e4bb746f1e215ec74ec05a98383604b7",
   "source": "https://github.com/ngshiheng/michelin-my-maps",
-  "dataVersion": 1,
+  "dataVersion": 2,
   "dataFile": "data/places.json",
   "cityFile": "data/cities.json"
 }

@@ -25,5 +25,14 @@
     "country": "Vietnam",
     "lat": 10.785,
     "lon": 106.709
+  },
+  {
+    "id": "hoi-an",
+    "name": "会安古城",
+    "localName": "Hội An",
+    "searchName": "Hoi An",
+    "country": "Vietnam",
+    "lat": 15.8778,
+    "lon": 108.3287
   }
 ]
