@@ -121,7 +121,7 @@ try {
   const { page: p, context } = await newPage();
   check(
     "default Da Nang markers include Hilton walking picks",
-    (await p.locator(".pin").count()) === 52,
+    (await p.locator(".pin").count()) === 56,
   );
   check(
     "no automatic location request",
@@ -155,7 +155,7 @@ try {
   await p.waitForTimeout(180);
   check(
     "list opens with all original places",
-    (await p.locator(".place").count()) === 52,
+    (await p.locator(".place").count()) === 56,
   );
   check("list can collapse again", await p.locator("#sheet-close").isVisible());
   await p.click("#sheet-close");
@@ -339,7 +339,7 @@ try {
   await p.click("#back-list");
   await p.selectOption("#city", "dn");
   await p.selectOption("#year", "2025");
-  check("2025 data preserved", (await p.locator(".pin").count()) === 48);
+  check("2025 data preserved", (await p.locator(".pin").count()) === 52);
   await p.selectOption("#year", "2026");
   await p.fill("#search", "ba duong");
   check(
@@ -443,7 +443,7 @@ try {
   await failed.click("#locate");
   check(
     "permission denial leaves restaurant pins intact",
-    (await failed.locator(".pin").count()) === 52 &&
+    (await failed.locator(".pin").count()) === 56 &&
       (await failed
         .locator("#gps-status")
         .textContent()
